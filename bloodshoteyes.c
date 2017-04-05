@@ -1,15 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-void usage();
+#include <time.h>
 
 void main(int argc, char *argv[]) {
-
+    
+    if (argc !=3) { // finish input filtering part
+        printf("Usage: %s <mins to work> <mins to rest>\n", argv[0]);
+        exit(0);
+    }
+    
     int worktime, breaktime;
-    // put input filtering and usage here
     worktime = atoi(argv[1]);
     breaktime = atoi(argv[2]);
-    printf("[DEBUG] worktime: %d\n", worktime);
-    printf("[DEBUG] breaktime: %d\n", breaktime);
-    // сделать цвет полоски применяемым
+
+    time_t time_till = clock();
+    printf("%ld", (long) time_till);
+    // usleep() ???
 }
