@@ -63,11 +63,10 @@ class ReminderPopup(Gtk.Window):
         self.timeout_id = GObject.timeout_add(50, self.on_timeout, resttime)
 
     def start_button_clicked(self, button):
-        Gtk.main_quit() # for now
+        pass
     
     def postpone_button_clicked(self, button):
-        print("Хуй")
-        #pop.destroy() # for now
+        pass
 
     def on_timeout(self, resttime):
         """
