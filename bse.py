@@ -13,7 +13,7 @@ if len(sys.argv) == 1:
     sys.exit(1)
 try:
     opts, args = getopt.getopt(sys.argv[1:],"w:r:", \
-            ["work=","rest="])
+            ["work=","rest=","patient","patient","very-patient"])
 except getopt.GetoptError:
     print("bse.py -w <mins to work> -r <mins to rest>")
     sys.exit(2)
@@ -23,6 +23,8 @@ for opt, arg in opts:
         worktime = float(arg)
     elif opt in ("-r","--rest"):
         resttime = float(arg)
+    elif opt in "--very-patient":
+        waiting = True
 
 # set a fraction by which progress bar will progress
 # according to rest time
@@ -41,63 +43,77 @@ class ReminderPopup(Gtk.Window):
                 resizable       = False) 
         self.set_keep_above(True)
         self.stick()
+        self.set_focus(None)
 
-        grid = Gtk.Grid(column_spacing = 50, row_spacing=7)
-        self.add(grid)
+        self.grid = Gtk.Grid(column_spacing = 7, row_spacing=7)
+        self.add(self.grid)
 
         self.progressbar = Gtk.ProgressBar()
 
-        start_button = Gtk.Button.new_with_label("Rest")
-        start_button.connect("clicked", \
-                self.start_button_clicked)
+        self.rest_button = Gtk.Button.new_with_label("Rest")
+        self.rest_button.connect("clicked", self.rest_button_clicked)
 
-        postpone_button = Gtk.Button.new_with_label("Postpone")
-        postpone_button.connect("clicked", \
-                self.postpone_button_clicked)
+        self.postpone_button = Gtk.Button.new_with_label("Postpone")
+        self.postpone_button.connect("clicked", self.postpone_button_clicked)
         
-        grid.attach(self.progressbar, 0, 0, 2, 1)
-        grid.attach(postpone_button, 0, 1, 1, 1)
-        grid.attach(start_button, 1, 1, 1, 1)
+        self.skip_button = Gtk.Button.new_with_label("Skip")
+        self.skip_button.connect("clicked", self.skip_button_clicked)
         
+        self.grid.attach(self.progressbar, 0, 0, 3, 1)
+        self.grid.attach(self.rest_button, 0, 1, 1, 1)
+        self.grid.attach(self.skip_button, 1, 1, 1, 1)
+        self.grid.attach(self.postpone_button, 2, 1, 1, 1)
+        
+        print("-- Window created")
 
         self.timeout_id = GObject.timeout_add(50, self.on_timeout, resttime)
-
-    def start_button_clicked(self, button):
-        pass
     
-    def postpone_button_clicked(self, button):
-        pass
-
     def on_timeout(self, resttime):
         """
-        update value on the progress bar
+        main logic
         """
-        value = self.progressbar.get_fraction() + fraction
-        # print(new_value) # debug, remove later
+        if waiting:
+            self.progressbar.pulse()
+        else:
+            value = self.progressbar.get_fraction() + fraction
+            # print(new_value) # debug, remove later
 
-        if time.time() == timeout or time.time() > timeout:
-            Gtk.main_quit()
-            pop.destroy()
-        
-        if value > 1:
-            value = 0
+            if time.time() == timeout or time.time() > timeout:
+                Gtk.main_quit()
+                self.destroy()
+            
+            if value > 1:
+                value = 0
 
-        self.progressbar.set_fraction(value)
+            self.progressbar.set_fraction(value)
 
         # as this is a timeout function, return True so that it
         # continues to get called
         return True
 
+    def rest_button_clicked(self, button):
+        waiting = False
+        # pop.progressbar.set_fraction(0.0)
+
+    def postpone_button_clicked(self, button):
+        Gtk.main_quit()
+        self.destroy()
+        exit(0) # for now
+
+    def skip_button_clicked(self, button):
+        Gtk.main_quit()
+        self.destroy()
+
 print(time.asctime() + " Started.")
-running = True
-while(running):
+while(True):
     time.sleep(60*worktime)
+    # ^ FIX: work timer gradually adds one second
     # popup shows up now
     timeout = time.time() + 60*resttime
     print(time.asctime() + " Rest timer starts now. ")
     pop = ReminderPopup()
-    pop.connect("delete-event", Gtk.main_quit) # delete when postpone button is working
     pop.show_all()
     Gtk.main()
+    print("-- Window destroyed")
     # aaaand it's gone
     print(time.asctime() + " Work timer starts now.")
