@@ -7,113 +7,105 @@ import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk, GObject
 
-# input check (shitty)
-if len(sys.argv) == 1:
-    print("bse.py -w <mins to work> -r <mins to rest>")
-    sys.exit(1)
-try:
-    opts, args = getopt.getopt(sys.argv[1:],"w:r:", \
-            ["work=","rest=","patient","patient","very-patient"])
-except getopt.GetoptError:
-    print("bse.py -w <mins to work> -r <mins to rest>")
-    sys.exit(2)
+def main():
+    # input check (shitty)
+    if len(sys.argv) == 1:
+        print("bse.py -w <mins to work> -r <mins to rest>")
+        sys.exit(1)
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"w:r:", \
+                ["work=","rest=","patient","patient","very-patient"])
+    except getopt.GetoptError:
+        print("bse.py -w <mins to work> -r <mins to rest>")
+        sys.exit(2)
 
-for opt, arg in opts:
-    if opt in ("-w","--work"):
-        worktime = float(arg)
-    elif opt in ("-r","--rest"):
-        resttime = float(arg)
-    elif opt in "--very-patient":
-        waiting = True
+    vpatient = False
+    for opt, arg in opts:
+        if opt in ("-w","--work"):
+            work_mins = float(arg)
+        elif opt in ("-r","--rest"):
+            rest_mins = float(arg)
+        elif opt in "--very-patient":
+            vpatient = True
+    fraction = 0.05 / (rest_mins*60)
 
-# set a fraction by which progress bar will progress
-# according to rest time
-fraction = 0.05 / (resttime * 60)
 
-class ReminderPopup(Gtk.Window):
+    class ReminderPopup(Gtk.Window):
+        def __init__(self):
+            Gtk.Window.__init__(self,\
+                    border_width    = 10, \
+                    #default_width   = 250, \
+                    #default_height  = 70, \
+                    decorated       = False, \
+                    deletable       = False, \
+                    resizable       = False, \
+                    #can_focus      = False)
+                    is_focus       = False)
+            self.set_keep_above(True)
+            self.stick()
+            #self.set_focus(None)
+            #self.set_position(Gtk.WIN_POS_CENTER)
+            self.grid = Gtk.Grid(column_spacing=7, row_spacing=6)
+            self.add(self.grid)
+            self.pbar = Gtk.ProgressBar()
+            self.pbar.set_show_text(" ")
+            self.rest_button = Gtk.Button.new_with_label("Rest")
+            self.rest_button.connect("clicked", self.on_rest)
+            self.postpone_button = Gtk.Button.new_with_label("Postpone")
+            self.postpone_button.connect("clicked", self.on_postpone)
+            self.skip_button = Gtk.Button.new_with_label("Skip")
+            self.skip_button.connect("clicked", self.on_skip)
+            self.grid.attach(self.pbar, 0, 0, 3, 1)
+            self.grid.attach(self.rest_button, 0, 1, 1, 1)
+            self.grid.attach(self.skip_button, 1, 1, 1, 1)
+            self.grid.attach(self.postpone_button, 2, 1, 1, 1)
+            self.waiting = vpatient
 
-    def __init__(self):
-        Gtk.Window.__init__(self, \
-                title           = "Take a break now.", \
-                border_width    = 10, \
-                #default_width   = 250, \
-                #default_height  = 70, \
-                decorated       = False, \
-                deletable       = False, \
-                resizable       = False) 
-        self.set_keep_above(True)
-        self.stick()
-        self.set_focus(None)
+            if not vpatient:
+                global rest_timeout
+                rest_timeout = time.time() + 60*rest_mins
 
-        self.grid = Gtk.Grid(column_spacing = 7, row_spacing=7)
-        self.add(self.grid)
+            self.timeout_id = GObject.timeout_add(50, self.on_timeout)
+            print("++ Window created")
 
-        self.progressbar = Gtk.ProgressBar()
+        def on_timeout(self):
+            if self.waiting:
+                self.pbar.pulse()
+            else:
+                value = self.pbar.get_fraction() + fraction
+                if time.time() > rest_timeout:
+                    Gtk.main_quit()
+                    self.destroy()
+                    value = 0.0
+                    self.waiting = vpatient
+                self.pbar.set_fraction(value)
+            return True
 
-        self.rest_button = Gtk.Button.new_with_label("Rest")
-        self.rest_button.connect("clicked", self.rest_button_clicked)
+        def on_rest(self, button):
+            self.waiting = False
+            global rest_timeout
+            rest_timeout = time.time() + 60*rest_mins
 
-        self.postpone_button = Gtk.Button.new_with_label("Postpone")
-        self.postpone_button.connect("clicked", self.postpone_button_clicked)
-        
-        self.skip_button = Gtk.Button.new_with_label("Skip")
-        self.skip_button.connect("clicked", self.skip_button_clicked)
-        
-        self.grid.attach(self.progressbar, 0, 0, 3, 1)
-        self.grid.attach(self.rest_button, 0, 1, 1, 1)
-        self.grid.attach(self.skip_button, 1, 1, 1, 1)
-        self.grid.attach(self.postpone_button, 2, 1, 1, 1)
-        
-        print("-- Window created")
+        def on_skip(self, button):
+            Gtk.main_quit()
+            self.waiting = vpatient
+            self.destroy()
 
-        self.timeout_id = GObject.timeout_add(50, self.on_timeout, resttime)
-    
-    def on_timeout(self, resttime):
-        """
-        main logic
-        """
-        if waiting:
-            self.progressbar.pulse()
-        else:
-            value = self.progressbar.get_fraction() + fraction
-            # print(new_value) # debug, remove later
+        def on_postpone(self, button):
+            Gtk.main_quit()
+            self.destroy()
+            exit(0) # remove later
 
-            if time.time() == timeout or time.time() > timeout:
-                Gtk.main_quit()
-                self.destroy()
-            
-            if value > 1:
-                value = 0
 
-            self.progressbar.set_fraction(value)
+    print("== " + time.asctime() + " Initiated")
+    while(True):
+        time.sleep(60*work_mins)
+        print("== " + time.asctime() + " Rest sequence starts now")
+        pop = ReminderPopup()
+        pop.show_all()
+        Gtk.main()
+        print("-- Window destroyed")
+        print("== " + time.asctime() + " Work timer starts now")
 
-        # as this is a timeout function, return True so that it
-        # continues to get called
-        return True
-
-    def rest_button_clicked(self, button):
-        waiting = False
-        # pop.progressbar.set_fraction(0.0)
-
-    def postpone_button_clicked(self, button):
-        Gtk.main_quit()
-        self.destroy()
-        exit(0) # for now
-
-    def skip_button_clicked(self, button):
-        Gtk.main_quit()
-        self.destroy()
-
-print(time.asctime() + " Started.")
-while(True):
-    time.sleep(60*worktime)
-    # ^ FIX: work timer gradually adds one second
-    # popup shows up now
-    timeout = time.time() + 60*resttime
-    print(time.asctime() + " Rest timer starts now. ")
-    pop = ReminderPopup()
-    pop.show_all()
-    Gtk.main()
-    print("-- Window destroyed")
-    # aaaand it's gone
-    print(time.asctime() + " Work timer starts now.")
+if __name__ == "__main__":
+    main()
