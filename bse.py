@@ -7,19 +7,36 @@ import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk, GObject
 
+def usage():
+    print("""\
+
+Usage:  bse.py -w <mins to work> -r <mins to rest> [OPTIONS]
+        -w <minutes>, --work <minutes> : Time to work
+        -r <minutes>, --rest <minutes> : Time to relax
+
+Options:--patient <minutes> : Wait for some time before starting a break
+        --very-patient : Wait until you decide to take a break
+    [!] You CAN'T use patient and very-patient at the same time
+        --noskip : Deny yourself the right to skip a break
+        --nopostpone: Deny yourself the right to postpone a break
+
+          """)
+
 def main():
     # input check (shitty)
     if len(sys.argv) == 1:
-        print("bse.py -w <mins to work> -r <mins to rest>")
+        usage()
         sys.exit(1)
     try:
         opts, args = getopt.getopt(sys.argv[1:],"w:r:", \
-                ["work=","rest=","patient","patient","very-patient"])
+                ["work=","rest=","patient=","very-patient","noskip","nopostpone"])
     except getopt.GetoptError:
-        print("bse.py -w <mins to work> -r <mins to rest>")
+        usage()
         sys.exit(2)
 
     vpatient = False
+    noskip   = False
+    nopost   = False
     for opt, arg in opts:
         if opt in ("-w","--work"):
             work_mins = float(arg)
@@ -27,6 +44,10 @@ def main():
             rest_mins = float(arg)
         elif opt in "--very-patient":
             vpatient = True
+        elif opt in "--noskip":
+            noskip = True
+        elif opt in "--nopostpone":
+            nopost = True
     fraction = 0.05 / (rest_mins*60)
 
 
@@ -64,6 +85,10 @@ def main():
             if not vpatient:
                 global rest_timeout
                 rest_timeout = time.time() + 60*rest_mins
+            if noskip:
+                self.skip_button.set_sensitive(False)
+            if nopost:
+                self.postpone_button.set_sensitive(False)
 
             self.timeout_id = GObject.timeout_add(50, self.on_timeout)
             print("++ Window created")
@@ -94,7 +119,6 @@ def main():
         def on_postpone(self, button):
             Gtk.main_quit()
             self.destroy()
-            exit(0) # remove later
 
 
     print("== " + time.asctime() + " Initiated")
