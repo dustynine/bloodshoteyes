@@ -29,7 +29,8 @@ def main():
         sys.exit(1)
     try:
         opts, args = getopt.getopt(sys.argv[1:],"w:r:", \
-                ["work=","rest=","patient=","very-patient","noskip","nopostpone"])
+                ["work=","rest=","patient=","postpone-by=","very-patient",\
+                 "noskip","nopostpone"])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -37,11 +38,16 @@ def main():
     vpatient = False
     noskip   = False
     nopost   = False
+    postpone_mins = 5
     for opt, arg in opts:
         if opt in ("-w","--work"):
             work_mins = float(arg)
         elif opt in ("-r","--rest"):
             rest_mins = float(arg)
+        elif opt in "--patient":
+            patience = float(arg)
+        elif opt in "--postpone-by":
+            postpone_mins = float(arg)
         elif opt in "--very-patient":
             vpatient = True
         elif opt in "--noskip":
@@ -117,8 +123,7 @@ def main():
             self.destroy()
 
         def on_postpone(self, button):
-            Gtk.main_quit()
-            self.destroy()
+            
 
 
     print("== " + time.asctime() + " Initiated")
