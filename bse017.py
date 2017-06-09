@@ -4,23 +4,23 @@ import sys
 import getopt
 import time
 import gi
-gi.require_version('Gtk','3.0')
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
 
+
 def usage():
-    print("""\
+    print("\n"
+          "Usage:  bse.py -w <mins to work> -r <mins to rest> [OPTIONS]\n"
+          "        -w <minutes>, --work <minutes> : Time to work\n"
+          "        -r <minutes>, --rest <minutes> : Time to relax\n"
+          "\n"
+          "Options:--patient <minutes> : Wait for some time before starting a break\n"
+          "        --very-patient : Wait until you decide to take a break\n"
+          "    [!] You CAN'T use patient and very-patient at the same time\n"
+          "        --noskip : Deny yourself the right to skip a break\n"
+          "        --nopostpone: Deny yourself the right to postpone a break\n"
+          "\n")
 
-Usage:  bse.py -w <mins to work> -r <mins to rest> [OPTIONS]
-        -w <minutes>, --work <minutes> : Time to work
-        -r <minutes>, --rest <minutes> : Time to relax
-
-Options:--patient <minutes> : Wait for some time before starting a break
-        --very-patient : Wait until you decide to take a break
-    [!] You CAN'T use patient and very-patient at the same time
-        --noskip : Deny yourself the right to skip a break
-        --nopostpone: Deny yourself the right to postpone a break
-
-          """)
 
 def main():
     # input check (shitty)
@@ -28,8 +28,8 @@ def main():
         usage()
         sys.exit(1)
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"w:r:", \
-                ["work=","rest=","patient=","postpone-by=","very-patient",\
+        opts, args = getopt.getopt(sys.argv[1:],"w:r:",
+                ["work=","rest=","patient=","postpone-by=","very-patient",
                  "noskip","nopostpone"])
     except getopt.GetoptError:
         usage()
@@ -60,16 +60,15 @@ def main():
     class ReminderPopup(Gtk.Window):
         def __init__(self):
             Gtk.Window.__init__(self,\
-                    border_width    = 10, \
-                    #default_width   = 250, \
-                    #default_height  = 70, \
-                    decorated       = False, \
-                    deletable       = False, \
-                    resizable       = False, \
-                    #can_focus      = False)
-                    is_focus       = False)
+                    border_width    = 10,
+                    decorated       = False,
+                    deletable       = False,
+                    resizable       = False,
+                    can_focus       = False,
+                    is_focus        = False)
             self.set_keep_above(True)
             self.stick()
+            self.skip_taskbar_hint(True)
             #self.set_focus(None)
             #self.set_position(Gtk.WIN_POS_CENTER)
             self.grid = Gtk.Grid(column_spacing=7, row_spacing=6)
@@ -123,11 +122,11 @@ def main():
             self.destroy()
 
         def on_postpone(self, button):
-            
+            pass
 
 
-    print("== " + time.asctime() + " Initiated")
-    while(True):
+    print("== "+time.asctime()+" Initiated")
+    while True:
         time.sleep(60*work_mins)
         print("== " + time.asctime() + " Rest sequence starts now")
         pop = ReminderPopup()
