@@ -68,7 +68,7 @@ def main():
                     is_focus        = False)
             self.set_keep_above(True)
             self.stick()
-            self.skip_taskbar_hint(True)
+            self.set_skip_taskbar_hint(True)
             #self.set_focus(None)
             #self.set_position(Gtk.WIN_POS_CENTER)
             self.grid = Gtk.Grid(column_spacing=7, row_spacing=6)
@@ -122,18 +122,20 @@ def main():
             self.destroy()
 
         def on_postpone(self, button):
-            pass
+            self.hide()
+            time.sleep(10)
+            self.show_all()
 
 
-    print("== "+time.asctime()+" Initiated")
+    print("== "+time.strftime("%H:%M", time.localtime())+" Initiated")
     while True:
         time.sleep(60*work_mins)
-        print("== " + time.asctime() + " Rest sequence starts now")
+        print("== " + time.strftime("%H:%M", time.localtime()) + " Rest sequence starts now")
         pop = ReminderPopup()
         pop.show_all()
         Gtk.main()
         print("-- Window destroyed")
-        print("== " + time.asctime() + " Work timer starts now")
+        print("== " + time.strftime("%H:%M", time.localtime()) + " Work timer starts now")
 
 if __name__ == "__main__":
     main()
