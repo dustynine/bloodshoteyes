@@ -5,6 +5,6 @@ Simple Python program that will remind you to take a break and give rest to your
          <p>-w <minutes>, --work <minutes> : Time in minutes you spend looking at the screen
          <p>-r <minutes>, --rest <minutes> : Time in minutes you spend resting
    
-<h3>Options:<h3> <p>--very-patient  : Wait infinitely until either of three buttons is pressed
+<h3>Options:</h3> <p>--very-patient  : Wait infinitely until either of three buttons is pressed
          <p>--noskip        : Deny yourself the right to skip a break at all
          <p>--nopostpone    : Deny yourself the right to postpone a break at all
