@@ -10,7 +10,4 @@ Simple Python program that will remind you to take a break and give rest to your
          <p>--nopostpone    : Deny yourself the right to postpone a break at all
          
 <h2>Configuration</h2>
-<p> If you're using bspwm add the following line in your bspwmrc file
-```
-bspc rule -a Bse.py manage=off
-```
+<p> If you're using bspwm add the following line in your bspwmrc file `bspc rule -a Bse.py manage=off`
