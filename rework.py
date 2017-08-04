@@ -3,78 +3,116 @@
 import sys
 import getopt
 import time
-import gi
 import os
-
+import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, Gio, GObject
+
 
 ONE_SECOND = 1000
 
-ICONS = (
-        os.path.abspath("./tray/icon00.png"),
-        os.path.abspath("./tray/icon25.png"),
-        os.path.abspath("./tray/icon50.png"),
-        os.path.abspath("./tray/icon75.png")
-        )
+ICONS = (os.path.abspath("./tray/icon00.png"),
+         os.path.abspath("./tray/icon25.png"),
+         os.path.abspath("./tray/icon50.png"),
+         os.path.abspath("./tray/icon75.png"))
+
+# class Bse(Gtk.Application):
+#     def __init__(self, application_id, flags):
+#         Gtk.Application.__init__(self, application_id = application_id,
+#                 flags = flags)
+#         self.connect("activate", self.create_manager)
+#
+#     def create_manager(self, *args):
+#         pass
 
 
-def usage():
-    print("\n"
-          "Usage:  bse.py -w <mins to work> -r <mins to rest> [OPTIONS]\n"
-          "        -w <minutes>, --work <minutes> : Time to work\n"
-          "        -r <minutes>, --rest <minutes> : Time to relax\n"
-          "\n"
-          "Options:--patient <minutes> : Wait for some time before starting a break\n"
-          "        --very-patient : Wait until you decide to take a break\n"
-          "    [!] You CAN'T be patient and very-patient at the same time\n"
-          "        --noskip : Deny yourself the right to skip a break\n"
-          "        --nopostpone: Deny yourself the right to postpone a break\n")
+class Manager(Gtk.Application):
+    def __init__(self, **kwargs):
+        Gtk.Application.__init__(self,
+                application_id="com.github.dustynine.bloodshoteyes",
+                flags = Gio.ApplicationFlags.FLAGS_NONE)
+        for (key, value) in kwargs.items():
+            setattr(self, key, value)
+
+        self.set_work_end()
+        tray = Tray(self)
+
+        # while time.time() < self.work_end:
+        #     time.sleep(1)
+        # else:
+        #     self.start_break()
+
+    def set_work_end(self):
+        self.work_end = time.time() + self.work_secs
+
+    def get_work_time_left(self):
+        return self.work_end - time.time()
+
+    def start_break(self):
+        print("boom! break!")
+
+    def pause_all(self):
+        pass
 
 
-class Scheduler():
-    def __init__(self, work_secs, rest_secs):
-        self.work_secs = work_secs
-        self.rest_secs = rest_secs
-
-        tray_object = TrayObject(self.work_secs)
-
-    def run_popup():
-        pop = ReminderPopup(work_secs, rest_secs, vpatient, noskip, nopost,
-                fraction)
-
-
-class TrayMeny():
-    pass
-
-
-class TrayObject():
-    def __init__(self, work_secs):
-        #self,menu = menu
-        self.work_secs = work_secs
+class Tray(Gtk.StatusIcon):
+    def __init__(self, manager):
+        Gtk.StatusIcon.__init__(self)#, size=15)
+        self.manager= manager
         self.count = 0
-        self.current_icon = ICONS[self.count]
-        self.tray_object = Gtk.StatusIcon()
-        self.tray_object.set_from_file(self.current_icon)
-        self.tray_object.connect("popup-menu", self.show_menu)
+        self.set_from_file(ICONS[self.count])
+        #self.set_from_stock(Gtk.STOCK_OPEN)
+        self.connect("popup-menu", self.show_menu)
+        self.set_visible(True)
 
-        self.quater_time = self.work_secs * ONE_SECOND / 4
-        print(self.quater_time)
-        self.quater_timeout = GObject.timeout_add(self.quater_time,
-                self.change_icon)
+    def show_menu(self, event, button, time):
+        try:
+            menu = Gtk.Menu()
+            menu.time_left_item = Gtk.MenuItem(to_digit_display(self.manager.get_work_time_left()))
+            menu.pause_item= Gtk.MenuItem("Pause")
+            menu.break_now_item = Gtk.MenuItem("Break now")
+            menu.quit_item = Gtk.MenuItem("Quit")
 
-    def show_menu(self):
-         print("mama imma menu")
+            menu.append(menu.time_left_item)
+            menu.append(menu.break_now_item)
+            menu.append(menu.pause_item)
+            menu.append(menu.quit_item)
 
-    def change_icon(self):
-        print('boom')
-        if self.count == 3:
-            self.count = 0
-            self.current_icon = ICONS[0]
-        else:
-            self.count += 1
-            self.current_icon = ICONS[self.count]
-        return True
+            menu.quit_item.connect("activate", Gtk.main_quit)
+
+            menu.quit_item.show()
+            menu.break_now_item.show()
+            menu.pause_item.show()
+            menu.time_left_item.show()
+
+            menu.popup(None, None, None, event, button, time)
+        except Exception as e:
+            print(e)
+            exit(0)
+
+
+# class PopupMenu(Gtk.Menu):
+#     def __init__(self, event_button, event_time):
+#         Gtk.Menu.__init__(self)
+#
+#         self.time_left_item = Gtk.MenuItem(to_digits(manager.get_work_time_left()))
+#         self.pause_item = Gtk.MenuItem("Pause")
+#         self.break_now_item = Gtk.MenuItem("Break now")
+#         self.quit_item = Gtk.MenuItem("Quit")
+#
+#         self.append(self.quit_item)
+#         self.append(self.break_now_item)
+#         self.append(self.pause_item)
+#         self.append(self.time_left_item)
+#
+#         self.quit_item.connect("activate", Gtk.main_quit())
+#
+#         self.quit_item.show()
+#         self.break_now_item.show()
+#         self.pause_item.show()
+#         self.time_left_item.show()
+#
+#         self.popup(None, None, None, event_button, event_time)
 
 
 class ReminderPopup(Gtk.Window):
@@ -99,6 +137,7 @@ class ReminderPopup(Gtk.Window):
         self.stick()
         self.set_skip_taskbar_hint(True)
         self.set_position(Gtk.WindowPosition.CENTER)
+        # defining gui
         self.grid = Gtk.Grid(column_spacing=7, row_spacing=6)
         self.add(self.grid)
         self.pbar = Gtk.ProgressBar()
@@ -113,15 +152,15 @@ class ReminderPopup(Gtk.Window):
         self.grid.attach(self.rest_button, 0, 1, 1, 1)
         self.grid.attach(self.skip_button, 1, 1, 1, 1)
         self.grid.attach(self.postpone_button, 2, 1, 1, 1)
+        # digit display
         self.display_seconds = int(self.rest_secs)
         if self.waiting:
             self.pbar.set_text("--:--")
         else:
-            self.pbar.set_text('{0:d}:{1:02d}'.format(
-                self.display_seconds//60,
-                self.display_seconds % 60))
+            self.pbar.set_text('{0:d}:{1:02d}'.format(self.display_seconds//60, self.display_seconds % 60))
             self.rest_button.set_sensitive(False)
             self.postpone_button.set_sensitive(False)
+
         if not self.vpatient:
             self.rest_end = time.time() + self.rest_secs
         if self.noskip:
@@ -131,7 +170,7 @@ class ReminderPopup(Gtk.Window):
 
         self.main_timeout = GObject.timeout_add(50, self.on_timeout)
         self.timer_timeout = GObject.timeout_add(ONE_SECOND, self.on_display)
-        print("++ Window created")
+        print("++ Window create d")
 
     def on_timeout(self):
         if self.waiting:
@@ -173,10 +212,27 @@ class ReminderPopup(Gtk.Window):
         self.destroy()
 
     def on_postpone(self, button):
-        sleep_time = postpone_secs
-        Gtk.main_quit()
-        self.destroy()
+        #sleep_time = postpone_secs
+        #Gtk.main_quit()
+        #self.destroy()
         pass
+
+
+def usage():
+    print("\n"
+          "Usage:  bse.py -w <mins to work> -r <mins to rest> [OPTIONS]\n"
+          "        -w <minutes>, --work <minutes> : Time to work\n"
+          "        -r <minutes>, --rest <minutes> : Time to relax\n"
+          "\n"
+          "Options:--patient <minutes> : Wait for some time before starting a break\n"
+          "        --very-patient : Wait until you decide to take a break\n"
+          "    [!] You CAN'T be patient and very-patient at the same time\n"
+          "        --noskip : Deny yourself the right to skip a break\n"
+          "        --nopostpone: Deny yourself the right to postpone a break\n")
+
+
+def to_digit_display(seconds):
+    return '{0:d}:{1:02d}'.format(int(seconds//60), int(seconds % 60))
 
 
 def main():
@@ -216,22 +272,11 @@ def main():
         #     curtain = True
 
     print("== "+time.strftime("%H:%M", time.localtime())+" Initiated")
-    scheduler = Scheduler(work_secs, rest_secs)
-    # tray_icon = TrayIcon(work_secs)
+
+    manager = Manager(work_secs = work_secs,
+                      rest_secs = rest_secs)
+
     Gtk.main()
-    # while True:
-    #     time.sleep(work_secs)
-    #     print("== " + time.strftime("%H:%M", time.localtime()) + \
-    #             " Rest sequence starts now")
-    #     pop = ReminderPopup(work_secs, rest_secs, vpatient, noskip, nopost,
-    #             fraction)
-    #     # здесь был Gtk.main()
-    #     pop.show_all()
-    #     print("-- Window destroyed")
-    #     print("== " + time.strftime("%H:%M", time.localtime()) + \
-    #             " Work timer starts now")
 
 
-if __name__ == "__main__":
-    main()
-
+if __name__ == "__main__": main()
