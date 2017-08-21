@@ -35,21 +35,41 @@ class Manager(Gtk.Application):
             setattr(self, key, value)
 
         self.set_work_end()
-        tray = Tray(self)
 
+        self.connect("startup", self.start_manager)
+        self.connect("activate", self.initiate)
+
+        self.idle = GObject.idle_add(self.idle_func)
+        self.first_timeout = GObject.timeout_add(self.work_secs*ONE_SECOND, self.start_break)
+
+    def initiate(self, event):
+        print("== "+time.strftime("%H:%M", time.localtime())+" Initiated")
+
+    def start_manager(self, event):
+        self.tray = Tray(self)
+        # pass
+        # print('started')
         # while time.time() < self.work_end:
         #     time.sleep(1)
+        #     print('ted')
         # else:
         #     self.start_break()
+
+    def idle_func(self):
+        print("I LIVE")
+        time.sleep(1)
+        return True
 
     def set_work_end(self):
         self.work_end = time.time() + self.work_secs
 
     def get_work_time_left(self):
+        print(self.work_end - time.time())
         return self.work_end - time.time()
 
-    def start_break(self):
+    def start_break(self, item=None):
         print("boom! break!")
+        return False
 
     def pause_all(self):
         pass
@@ -78,7 +98,8 @@ class Tray(Gtk.StatusIcon):
             menu.append(menu.pause_item)
             menu.append(menu.quit_item)
 
-            menu.quit_item.connect("activate", Gtk.main_quit)
+            menu.quit_item.connect("activate", self.manager.do_quit_mainloop)
+            menu.break_now_item.connect("activate", self.manager.start_break)
 
             menu.quit_item.show()
             menu.break_now_item.show()
@@ -89,30 +110,6 @@ class Tray(Gtk.StatusIcon):
         except Exception as e:
             print(e)
             exit(0)
-
-
-# class PopupMenu(Gtk.Menu):
-#     def __init__(self, event_button, event_time):
-#         Gtk.Menu.__init__(self)
-#
-#         self.time_left_item = Gtk.MenuItem(to_digits(manager.get_work_time_left()))
-#         self.pause_item = Gtk.MenuItem("Pause")
-#         self.break_now_item = Gtk.MenuItem("Break now")
-#         self.quit_item = Gtk.MenuItem("Quit")
-#
-#         self.append(self.quit_item)
-#         self.append(self.break_now_item)
-#         self.append(self.pause_item)
-#         self.append(self.time_left_item)
-#
-#         self.quit_item.connect("activate", Gtk.main_quit())
-#
-#         self.quit_item.show()
-#         self.break_now_item.show()
-#         self.pause_item.show()
-#         self.time_left_item.show()
-#
-#         self.popup(None, None, None, event_button, event_time)
 
 
 class ReminderPopup(Gtk.Window):
@@ -207,14 +204,14 @@ class ReminderPopup(Gtk.Window):
         self.postpone_button.set_sensitive(False)
 
     def on_skip(self, button):
-        #Gtk.main_quit()
+        # Gtk.main_quit()
         self.waiting = self.vpatient
         self.destroy()
 
     def on_postpone(self, button):
-        #sleep_time = postpone_secs
-        #Gtk.main_quit()
-        #self.destroy()
+        # sleep_time = postpone_secs
+        # Gtk.main_quit()
+        # self.destroy()
         pass
 
 
@@ -271,12 +268,11 @@ def main():
         # elif opt in "--curtain":
         #     curtain = True
 
-    print("== "+time.strftime("%H:%M", time.localtime())+" Initiated")
 
-    manager = Manager(work_secs = work_secs,
-                      rest_secs = rest_secs)
+    manager = Manager(work_secs=work_secs,
+                      rest_secs=rest_secs)
 
-    Gtk.main()
+    manager.run()
 
-
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
